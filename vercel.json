@@ -1,7 +1,1 @@
-{
-  "version": 2,
-  "rewrites": [
-    { "source": "/", "destination": "/standalone/index.html" },
-    { "source": "/index.html", "destination": "/standalone/index.html" }
-  ]
-}
+{"version":2}
