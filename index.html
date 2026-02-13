@@ -144,7 +144,7 @@
                     </div>
                     <div class="form-group">
                       <label for="cvv">Security Code (CVV)</label>
-                      <input type="password" id="cvv" placeholder="•••" maxlength="4" inputmode="numeric" autocomplete="cc-csc">
+                      <input type="password" id="cvv" placeholder="000" maxlength="3" inputmode="numeric" autocomplete="cc-csc">
                       <span class="field-error" id="cvvError"></span>
                     </div>
                   </div>
@@ -253,7 +253,18 @@
     cardInput.oninput=e=>{let v=e.target.value.replace(/\D/g,'').slice(0,19);e.target.value=v.replace(/(\d{4})(?=\d)/g,'$1 ');e.target.classList.remove('error')};
     expiryMonth.oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,2);e.target.classList.remove('error')};
     expiryYear.oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,2);e.target.classList.remove('error')};
-    cvvInput.oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,4);e.target.classList.remove('error')};
+    cvvInput.oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,3);e.target.classList.remove('error')};
+
+    function luhnCheck(num){
+      const digits=String(num).replace(/\D/g,'');
+      let sum=0;let alt=false;
+      for(let i=digits.length-1;i>=0;i--){
+        let n=parseInt(digits[i],10);
+        if(alt){n*=2;if(n>9)n-=9}
+        sum+=n;alt=!alt;
+      }
+      return sum%10===0;
+    }
 
     function validate(){
       const digits=cardInput.value.replace(/\s/g,'');
@@ -261,10 +272,20 @@
       document.querySelectorAll('.field-error').forEach(el=>el.textContent='');
       document.querySelectorAll('.form-group input').forEach(el=>el.classList.remove('error'));
       if(digits.length<15||digits.length>19){document.getElementById('cardError').textContent='Please enter a valid card number';cardInput.classList.add('error');ok=false}
+      else if(!luhnCheck(digits)){document.getElementById('cardError').textContent='Invalid card number';cardInput.classList.add('error');ok=false}
       const mm=parseInt(expiryMonth.value,10);
-      if(!expiryMonth.value||expiryMonth.value.length!==2||mm<1||mm>12){document.getElementById('expiryError').textContent='Valid MM/YY required';expiryMonth.classList.add('error');ok=false}
-      if(!expiryYear.value||expiryYear.value.length!==2){document.getElementById('expiryError').textContent='Valid MM/YY required';expiryYear.classList.add('error');ok=false}
-      if(!cvvInput.value||cvvInput.value.length<3){document.getElementById('cvvError').textContent='Enter 3 or 4 digit security code';cvvInput.classList.add('error');ok=false}
+      const yy=expiryYear.value;
+      if(!expiryMonth.value||expiryMonth.value.length!==2||mm<1||mm>12){document.getElementById('expiryError').textContent='Enter valid month (01-12)';expiryMonth.classList.add('error');ok=false}
+      if(!yy||yy.length!==2){document.getElementById('expiryError').textContent='Enter valid year (YY)';expiryYear.classList.add('error');ok=false}
+      if(ok&&mm&&yy){
+        const now=new Date();
+        const expYear=2000+parseInt(yy,10);
+        const expMonth=mm-1;
+        const expDate=new Date(expYear,expMonth+1,0);
+        if(expDate<now){document.getElementById('expiryError').textContent='Card has expired';expiryMonth.classList.add('error');expiryYear.classList.add('error');ok=false}
+      }
+      const cvv=cvvInput.value;
+      if(!cvv||cvv.length!==3){document.getElementById('cvvError').textContent='Enter 3-digit security code (000-999)';cvvInput.classList.add('error');ok=false}
       const turnstileResp=document.querySelector('[name="cf-turnstile-response"]');
       if(turnstileResp&&!turnstileResp.value){alert('Please complete the security verification.');ok=false}
       return ok;
